@@ -1,15 +1,277 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <title>ESP32 Web Server</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <link rel="icon" href="data:,">
-  <link rel="stylesheet" type="text/css" href="style.css">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Garden Automation Dashboard</title>
+  <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <h1>ESP32 Web Server</h1>
-  <p>GPIO state: <strong> %STATE%</strong></p>
-  <p><a href="/on"><button class="button">ON</button></a></p>
-  <p><a href="/off"><button class="button button2">OFF</button></a></p>
+
+  <div id="main-dashboard">
+    
+    <div class="card">
+      <h2>Brain Box Diagnostics</h2>
+      <div class="data-row">
+        <span>Outside Temp:</span>
+        <span class="val" id="sys-temp">-- °C</span>
+      </div>
+      <div class="data-row">
+        <span>Outside Humidity:</span>
+        <span class="val" id="sys-hum">-- %</span>
+      </div>
+      
+      <div class="data-row" style="margin-top: 15px; border-top: 1px dashed #1f140e; padding-top: 10px;">
+        <span>Battery Voltage:</span>
+        <span class="val" id="sys-batt-v">-- V</span>
+      </div>
+      <div class="data-row">
+        <span>Charging Current:</span>
+        <span class="val" id="sys-batt-charge">-- mA</span>
+      </div>
+      <div class="data-row">
+        <span>Solar Panel Angle:</span>
+        <span class="val" id="sys-solar-angle">-- &deg;</span>
+      </div>
+
+      <div id="active-water-banner" style="display: none; background-color: rgba(96, 165, 250, 0.1); padding: 12px; border-radius: 8px; border: 1px solid #60a5fa; margin-top: 15px; justify-content: space-between; align-items: center;">
+        <div style="color: #60a5fa; font-weight: bold;">
+          💧 Actively Watering: <span id="active-stake-name" style="color: #ffffff; margin-left: 5px;">--</span>
+        </div>
+        <button onclick="stopWatering()" style="background: transparent; border: 1px solid #60a5fa; color: #60a5fa; border-radius: 4px; padding: 4px 10px; cursor: pointer; font-weight: bold;">Stop</button>
+      </div>
+
+    </div>
+
+    <div class="card" style="display: flex; justify-content: space-between; align-items: center;">
+      <div class="toggle-container">
+        <label class="switch">
+          <input type="checkbox" id="test-mode-toggle" onchange="toggleTestMode()">  <!-- FIXED -->
+          <span class="slider"></span>
+        </label>
+        <span style="margin-left: 12px; font-weight: bold; font-size: 1.1em;">Test Mode</span>
+      </div>
+      <button class="action-btn" onclick="waterAll()">💧 Water All</button>
+    </div>
+
+    <div class="card">
+      <h2>Active Plant Stakes</h2>
+      <div class="stakes-grid" id="stakes-container">
+        <button class="stake-btn" onclick="openStakeDetails('Stake 1', '75%', ['08:00', '16:30'], 'Medium', ['Mon', 'Wed', 'Fri'])">Stake 1</button>
+        <button class="stake-btn" onclick="openStakeDetails('Stake 2', '40%', ['18:30'], 'High', ['Tue', 'Thu', 'Sat'])">Stake 2</button>
+        <button class="stake-btn" onclick="openStakeDetails('Stake 3', '90%', ['06:15', '12:00', '20:00'], 'Low', ['Sun'])">Stake 3</button>
+      </div>
+    </div>
+
+  </div>
+
+  <div id="stake-details" class="hidden">
+    
+    <button class="back-btn" onclick="closeStakeDetails()">&#8592; Back to Dashboard</button>
+
+    <div class="card">
+      <h2 id="detail-title">Stake Name</h2>
+      
+      <div class="data-row">
+        <span>Current Water Level:</span>
+        <span class="val" id="detail-water-level" style="color: var(--accent);">--</span>
+      </div>
+
+      <label>Watering Days:</label>
+      <div class="days-grid">
+        <label class="day-checkbox"><input type="checkbox" value="Mon"><span>M</span></label>
+        <label class="day-checkbox"><input type="checkbox" value="Tue"><span>T</span></label>
+        <label class="day-checkbox"><input type="checkbox" value="Wed"><span>W</span></label>
+        <label class="day-checkbox"><input type="checkbox" value="Thu"><span>T</span></label>
+        <label class="day-checkbox"><input type="checkbox" value="Fri"><span>F</span></label>
+        <label class="day-checkbox"><input type="checkbox" value="Sat"><span>S</span></label>
+        <label class="day-checkbox"><input type="checkbox" value="Sun"><span>S</span></label>
+      </div>
+
+      <label>Scheduled Times:</label>
+      <div style="display: flex; gap: 10px; margin-bottom: 10px;">
+        <input type="time" id="input-time">
+        <button class="action-btn" onclick="addTime()" style="margin: 0; padding: 0 20px;">+ Add</button>
+      </div>
+      
+      <div id="time-chips-container" style="display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 20px;"></div>
+
+      <label>Water Volume:</label>
+      <select id="input-vol">
+        <option value="Low">Low</option>
+        <option value="Medium">Medium</option>
+        <option value="High">High</option>
+      </select>
+
+      <button class="primary-btn" onclick="saveStakeSettings()">Save Settings</button>
+      <button class="secondary-btn" onclick="startManualWater()">💧 Begin Water Cycle</button>
+    </div>
+
+  </div>
+
+  <script>
+    const mainDashboard = document.getElementById('main-dashboard');
+    const stakeDetails = document.getElementById('stake-details');
+    
+    // let activeTimes = [];
+
+    // function openStakeDetails(name, waterLevel, timesArr, vol, daysArr) {
+    //   document.getElementById('detail-title').innerText = name;
+    //   document.getElementById('detail-water-level').innerText = waterLevel;
+    //   document.getElementById('input-vol').value = vol;
+      
+    //   document.querySelectorAll('.day-checkbox input').forEach(cb => {
+    //     cb.checked = daysArr.includes(cb.value);
+    //   });
+      
+    //   activeTimes = [...timesArr]; 
+    //   renderTimeChips();
+      
+    //   mainDashboard.classList.add('hidden');
+    //   stakeDetails.classList.remove('hidden');
+    // }
+
+    // function closeStakeDetails() {
+    //   stakeDetails.classList.add('hidden');
+    //   mainDashboard.classList.remove('hidden');
+    // }
+
+    // function renderTimeChips() {
+    //   const container = document.getElementById('time-chips-container');
+    //   container.innerHTML = ''; 
+      
+    //   activeTimes.sort(); 
+      
+    //   activeTimes.forEach((time, index) => {
+    //     const chip = document.createElement('div');
+    //     chip.className = 'time-chip';
+    //     chip.innerHTML = `${time} <button class="remove-chip-btn" onclick="removeTime(${index})">&times;</button>`;
+    //     container.appendChild(chip);
+    //   });
+    // }
+
+    // function addTime() {
+    //   const newTime = document.getElementById('input-time').value;
+    //   if (newTime && !activeTimes.includes(newTime)) {
+    //     activeTimes.push(newTime);
+    //     renderTimeChips();
+    //     document.getElementById('input-time').value = ''; 
+    //   }
+    // }
+
+    // function removeTime(index) {
+    //   activeTimes.splice(index, 1);
+    //   renderTimeChips();
+    // }
+
+    // function saveStakeSettings() {
+    //   const vol = document.getElementById('input-vol').value;
+    //   const stakeName = document.getElementById('detail-title').innerText;
+      
+    //   const selectedDays = [];
+    //   document.querySelectorAll('.day-checkbox input:checked').forEach(cb => {
+    //     selectedDays.push(cb.value);
+    //   });
+      
+    //   console.log(`Saved ${stakeName}: Days [${selectedDays.join(', ')}], Times [${activeTimes.join(', ')}], Volume: ${vol}`);
+    //   closeStakeDetails();
+    // }
+
+    function setActiveWatering(stakeName) {
+      const banner = document.getElementById('active-water-banner');
+      const nameLabel = document.getElementById('active-stake-name');
+      
+      if (stakeName) {
+        nameLabel.innerText = stakeName;
+        banner.style.display = 'flex'; 
+      } else {
+        banner.style.display = 'none'; 
+      }
+    }
+
+    async function stopWatering() {
+      console.log("Manual override: Stopping water flow.");
+      setActiveWatering(null);
+      try {
+        const response = await fetch('/stopwater/all');
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        console.log("All queued watering cycles stopped.");
+        await fetchSystemState();
+      } catch (error) {
+        console.error('Error clearing watering queue:', error);
+      }
+    }
+
+    // function startManualWater() {
+    //   const stakeName = document.getElementById('detail-title').innerText;
+    //   console.log(`Manual override: Watering ${stakeName} now.`);
+    //   setActiveWatering(stakeName);
+    //   closeStakeDetails();
+    // }
+
+    async function waterAll() {
+      console.log("Manual override: Queuing all active stakes.");
+      setActiveWatering('Stake 1'); 
+      try {
+        const response = await fetch('/water/all');
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        console.log("All active stakes queued for watering.");
+        await fetchSystemState();
+      } catch (error) {
+        console.error('Error queuing all stakes for watering:', error);
+      }
+    }
+
+    async function toggleTestMode() {
+      const isTestMode = document.getElementById('test-mode-toggle').checked;
+
+      const method = isTestMode ? '/test/on' : '/test/off';
+      try {
+        const response = await fetch(method);
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        console.log(`Test mode ${isTestMode ? 'enabled' : 'disabled'}.`);
+
+        await fetchSystemState();
+      } catch (error) {
+        console.error('Error toggling test mode:', error);
+
+        document.getElementById('test-mode-toggle').checked = !isTestMode;
+      }
+    }
+    
+    // priodically fetches current system values and udates all clients
+    async function fetchSystemState() {
+      try {
+        const response = await fetch('/api/state', {
+          cache: 'no-store'
+        });
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        const data = await response.json();
+        
+        document.getElementById('sys-temp').innerText = `${data.outsideTemp} °C`;
+        document.getElementById('sys-hum').innerText = `${data.outsideHumidity} %`;
+        document.getElementById('sys-batt-v').innerText = `${data.batteryVoltage} V`;
+        document.getElementById('sys-batt-charge').innerText = `${data.chargeCurrent} mA`;
+        document.getElementById('sys-solar-angle').innerText = `${data.solarPanelAngle} °`;
+        document.getElementById('test-mode-toggle').checked = data.printToConsole;
+
+        setActiveWatering(data.activeStake);
+      } catch (error) {
+        console.error('Error fetching system state:', error);
+      }
+    }
+    // Enables refreshing every 1 second
+    fetchSystemState();
+    setInterval(fetchSystemState, 1000);
+  </script>
+
 </body>
 </html>
