@@ -34,7 +34,7 @@
         <span class="val" id="sys-solar-angle">-- &deg;</span>
       </div>
 
-      <div id="active-water-banner" style="display: none; background-color: rgba(96, 165, 250, 0.1); padding: 12px; border-radius: 8px; border: 1px solid #60a5fa; margin-top: 15px; justify-content: space-between; align-items: center;">
+      <div idwater-banner" style="display: none; background-color: rgba(96, 165, 250, 0.1); padding: 12px; border-radius: 8px; border: 1px solid #60a5fa; margin-top: 15px; justify-content: space-between; align-items: center;">
         <div style="color: #60a5fa; font-weight: bold;">
           💧 Actively Watering: <span id="active-stake-name" style="color: #ffffff; margin-left: 5px;">--</span>
         </div>
@@ -46,7 +46,7 @@
     <div class="card" style="display: flex; justify-content: space-between; align-items: center;">
       <div class="toggle-container">
         <label class="switch">
-          <input type="checkbox" id="test-mode-toggle" onchange="toggleTestMode()">  <!-- FIXED -->
+          <input type="checkbox" id="test-mode-toggle" onchange="toggleTestMode()">
           <span class="slider"></span>
         </label>
         <span style="margin-left: 12px; font-weight: bold; font-size: 1.1em;">Test Mode</span>
@@ -57,9 +57,9 @@
     <div class="card">
       <h2>Active Plant Stakes</h2>
       <div class="stakes-grid" id="stakes-container">
-        <button class="stake-btn" onclick="openStakeDetails('Stake 1', '75%', ['08:00', '16:30'], 'Medium', ['Mon', 'Wed', 'Fri'])">Stake 1</button>
-        <button class="stake-btn" onclick="openStakeDetails('Stake 2', '40%', ['18:30'], 'High', ['Tue', 'Thu', 'Sat'])">Stake 2</button>
-        <button class="stake-btn" onclick="openStakeDetails('Stake 3', '90%', ['06:15', '12:00', '20:00'], 'Low', ['Sun'])">Stake 3</button>
+        <button class="stake-btn" onclick="openStakeDetails('Stake 1')">Stake 1</button>
+        <button class="stake-btn" onclick="openStakeDetails('Stake 2')">Stake 2</button>     <!-- Hardcoded for now -->
+        <button class="stake-btn" onclick="openStakeDetails('Stake 3')">Stake 3</button>
       </div>
     </div>
 
@@ -113,42 +113,62 @@
     const mainDashboard = document.getElementById('main-dashboard');
     const stakeDetails = document.getElementById('stake-details');
     
-    // let activeTimes = [];
+    let activeTimes = [];
 
-    // function openStakeDetails(name, waterLevel, timesArr, vol, daysArr) {
-    //   document.getElementById('detail-title').innerText = name;
-    //   document.getElementById('detail-water-level').innerText = waterLevel;
-    //   document.getElementById('input-vol').value = vol;
-      
-    //   document.querySelectorAll('.day-checkbox input').forEach(cb => {
-    //     cb.checked = daysArr.includes(cb.value);
-    //   });
-      
-    //   activeTimes = [...timesArr]; 
-    //   renderTimeChips();
-      
-    //   mainDashboard.classList.add('hidden');
-    //   stakeDetails.classList.remove('hidden');
-    // }
+    async function openStakeDetails(name) {
+      document.getElementById('detail-title').innerText = name;
 
-    // function closeStakeDetails() {
-    //   stakeDetails.classList.add('hidden');
-    //   mainDashboard.classList.remove('hidden');
-    // }
+      try {
+        const params = new URLSearchParams({ name });
+        const response = await fetch(`/getstakedata?${params.toString()}`, {
+          cache: 'no-store'
+        });
 
-    // function renderTimeChips() {
-    //   const container = document.getElementById('time-chips-container');
-    //   container.innerHTML = ''; 
+        if (!response.ok) {
+          throw new Error(`HTTP error: ${response.status}`);
+        }
+
+        const data = await response.json();
+        const daysArr = data.daysArr;
+        const timesArr = data.timesArr;
+
+        document.getElementById('detail-water-level').innerText = data.waterLevel;
+        document.getElementById('input-vol').value = data.vol;
+        
+        document.querySelectorAll('.day-checkbox input').forEach(cb => {
+          cb.checked = daysArr.includes(cb.value);
+        });
+        
+        activeTimes = [...timesArr];
+        renderTimeChips();
+
+        mainDashboard.classList.add('hidden');
+        stakeDetails.classList.remove('hidden');
+      } catch (error) {
+        console.error('Error fetching stake data:', error);
+      }
+    }
+
+    function closeStakeDetails() {
+      // gathers stake details class elements and adds them to hidden CSS class
+      stakeDetails.classList.add('hidden');
+      // gathers main dashboard class elements and removes them from hidden CSS class
+      mainDashboard.classList.remove('hidden');
+    }
+
+    function renderTimeChips() {
+      const container = document.getElementById('time-chips-container');
+      container.innerHTML = ''; 
       
-    //   activeTimes.sort(); 
+      activeTimes.sort(); 
       
-    //   activeTimes.forEach((time, index) => {
-    //     const chip = document.createElement('div');
-    //     chip.className = 'time-chip';
-    //     chip.innerHTML = `${time} <button class="remove-chip-btn" onclick="removeTime(${index})">&times;</button>`;
-    //     container.appendChild(chip);
-    //   });
-    // }
+      activeTimes.forEach((time, index) => {
+        const chip = document.createElement('div');
+        chip.className = 'time-chip';
+        chip.innerHTML = `${time} <button class="remove-chip-btn" onclick="removeTime(${index})">&times;</button>`;
+        container.appendChild(chip);
+      });
+    }
 
     // function addTime() {
     //   const newTime = document.getElementById('input-time').value;
@@ -245,7 +265,9 @@
       }
     }
     
-    // priodically fetches current system values and udates all clients
+    /*
+    Periodically fetches current system values and udates all clients
+    */
     async function fetchSystemState() {
       try {
         const response = await fetch('/api/state', {

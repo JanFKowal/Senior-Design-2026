@@ -11,6 +11,7 @@ void handleWaterAll(AsyncWebServerRequest *request);
 void handleStopWaterAll(AsyncWebServerRequest *request);
 void registerServerCallbacks();
 void handleState(AsyncWebServerRequest *request);
+void handleStakeData(AsyncWebServerRequest *request);
 
 // Replace with your network credentials
 const char* ssid = "Jasiek_2.4G";
@@ -58,7 +59,7 @@ void setup(){
 
   // Start server
   server.begin();
-}//yoyo
+}
  
 void loop(){
   delay(1000);
@@ -80,11 +81,11 @@ void registerServerCallbacks() {
   server.on("/test/off", HTTP_GET, handleTestModeOff);
   server.on("/water/all", HTTP_GET, handleWaterAll);
   server.on("/stopwater/all", HTTP_GET, handleStopWaterAll);
+  server.on("/getstakedata", HTTP_GET, handleStakeData);
   
   server.on("/api/state", HTTP_GET, handleState);
 }
 /** Handlers**************************** */
-
 /*
   * Handles the request to enable test mode
 */
@@ -128,6 +129,26 @@ void registerServerCallbacks() {
     // TODO: Add logic for stopping all watering cycles
     activeStake = ""; // Clear active stake
     request->send(200, "text/plain", "All watering cycles stopped");
+  }
+
+  void handleStakeData(AsyncWebServerRequest *request) {
+    // TODO: Implement stake data retrieval logic
+    if(!request->hasParam("name")) {
+      request->send(400, "text/plain", "Missing stake name parameter");
+      return;
+    }
+    String stakeName = request->getParam("name")->value();
+    if (printToConsole) {
+      Serial.println("Fetching data for " + stakeName);
+    }
+    String jsonResponse = "{";
+    jsonResponse += "\"waterLevel\": \"75%\",";
+    jsonResponse += "\"timesArr\": [\"08:00\", \"16:30\"],";
+    jsonResponse += "\"vol\": \"Medium\",";
+    jsonResponse += "\"daysArr\": [\"Mon\", \"Wed\", \"Fri\"]";
+    jsonResponse += "}";
+
+    request->send(200, "application/json", jsonResponse);
   }
 
   /*
