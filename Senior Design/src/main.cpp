@@ -2,6 +2,7 @@
 #include "WiFi.h"
 #include "ESPAsyncWebServer.h"
 #include "SPIFFS.h"
+#include <ESPmDNS.h>
 
 //Initalize method names
 void handleTestModeOn(AsyncWebServerRequest *request);
@@ -45,14 +46,19 @@ void setup(){
     Serial.println("Connecting to WiFi..");
   }
 
-  // Print ESP32 Local IP Address
-  Serial.println(WiFi.localIP());
+  if(!MDNS.begin("garden")) {
+    Serial.println("Error starting mDNS");
+    return;
+  }
+  MDNS.addService("_http", "_tcp", 80);
+  // Print ESP32 http server address
+  Serial.println("http://garden.local");
 
   registerServerCallbacks();
 
   // Start server
   server.begin();
-}
+}//yoyo
  
 void loop(){
   delay(1000);
