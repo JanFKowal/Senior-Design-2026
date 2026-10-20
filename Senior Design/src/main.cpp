@@ -12,11 +12,14 @@ void handleStopWaterAll(AsyncWebServerRequest *request);
 void registerServerCallbacks();
 void handleState(AsyncWebServerRequest *request);
 void handleStakeData(AsyncWebServerRequest *request);
+void handleSaveStakeData(AsyncWebServerRequest *request);
+void handleButtonPressed();
 
 // Replace with your network credentials
 const char* ssid = "Jasiek_2.4G";
 const char* password = "Jasiek_2005";
 const int ledPin = 8; // GPIO pin for the LED
+const int bttnPin = 9; // GPIO pin for the button
 
 bool printToConsole = false;
 int outsideTemp = 0;
@@ -26,13 +29,25 @@ int chargeCurrent = 0;
 int solarPanelAngle = 0;
 String activeStake = "";
 
+ typedef enum {
+  NONE,
+  BUTTON_PRESSED
+} event;
+
+volatile event systemEvent = NONE;
+
 // Create AsyncWebServer object on port 80
 AsyncWebServer server(80);
+AsyncEventSource events("/events");
 
 void setup(){
   // Serial port for debugging purposes
   Serial.begin(115200);
   pinMode(ledPin, OUTPUT);
+  pinMode(bttnPin, INPUT_PULLUP); // Set button pin as input with pull-up resistor
+  
+  //setup button interrupt
+  attachInterrupt(digitalPinToInterrupt(bttnPin), handleButtonPressed, CHANGE); // Trigger on any change (press or release)
 
   // Initialize SPIFFS
   if(!SPIFFS.begin(true)){
@@ -62,7 +77,18 @@ void setup(){
 }
  
 void loop(){
-  delay(1000);
+  switch(systemEvent) {
+    case BUTTON_PRESSED:
+      if (printToConsole) {
+        Serial.println("Button pressed!");
+      }
+      events.send("Button pressed", "button-pressed", millis());
+      systemEvent = NONE; // Reset event
+      break;
+    default:
+      delay(100); 
+      break;
+  }
 }
 
 void registerServerCallbacks() {
@@ -82,8 +108,10 @@ void registerServerCallbacks() {
   server.on("/water/all", HTTP_GET, handleWaterAll);
   server.on("/stopwater/all", HTTP_GET, handleStopWaterAll);
   server.on("/getstakedata", HTTP_GET, handleStakeData);
+  server.on("/savestakedata", HTTP_GET, handleSaveStakeData);
   
   server.on("/api/state", HTTP_GET, handleState);
+  server.addHandler(&events);
 }
 /** Handlers**************************** */
 /*
@@ -149,14 +177,43 @@ void registerServerCallbacks() {
     jsonResponse += "}";
 
     request->send(200, "application/json", jsonResponse);
+  } // handleState
+
+void handleSaveStakeData(AsyncWebServerRequest *request) {
+  if (!request->hasParam("name") || !request->hasParam("times") ||
+      !request->hasParam("vol") || !request->hasParam("days")) {
+    request->send(400, "text/plain", "Missing parameters");
+    return;
   }
 
+  String stakeName = request->getParam("name")->value();
+  String times = request->getParam("times")->value();
+  String vol = request->getParam("vol")->value();
+  String days = request->getParam("days")->value();
+
+  if (printToConsole) {
+    Serial.println("Saving data for " + stakeName);
+    Serial.println("Times: " + times);
+    Serial.println("Days: " + days);
+    Serial.println("Volume: " + vol);
+  }
+
+  // TODO: Implement logic to save stake data to persistent storage or memory.
+  request->send(200, "text/plain", "Stake data saved");
+}
+
+void handleButtonPressed() {
+  if (digitalRead(bttnPin) == LOW) {
+    systemEvent = BUTTON_PRESSED;
+  }
+}
   /*
   * Handles the API request for current system values
   */
   void handleState(AsyncWebServerRequest *request) {
     
     String jsonResponse = "{";
+    //backslashes are needed to include quotes in the string
     jsonResponse += "\"printToConsole\": " + String(printToConsole ? "true" : "false") + ",";
     jsonResponse += "\"outsideTemp\": " + String(outsideTemp) + ",";
     jsonResponse += "\"outsideHumidity\": " + String(outsideHumidity) + ",";

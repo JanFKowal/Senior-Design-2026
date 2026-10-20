@@ -9,6 +9,8 @@
 <body>
 
   <div id="main-dashboard">
+
+    <div id="event-notification" style="display: none; background-color: rgba(74, 222, 128, 0.1); padding: 12px; border-radius: 8px; border: 1px solid #4ade80; margin-bottom: 15px; color: #4ade80; font-weight: bold;"></div>
     
     <div class="card">
       <h2>Brain Box Diagnostics</h2>
@@ -34,7 +36,7 @@
         <span class="val" id="sys-solar-angle">-- &deg;</span>
       </div>
 
-      <div idwater-banner" style="display: none; background-color: rgba(96, 165, 250, 0.1); padding: 12px; border-radius: 8px; border: 1px solid #60a5fa; margin-top: 15px; justify-content: space-between; align-items: center;">
+      <div id = "water-banner" style="display: none; background-color: rgba(96, 165, 250, 0.1); padding: 12px; border-radius: 8px; border: 1px solid #60a5fa; margin-top: 15px; justify-content: space-between; align-items: center;">
         <div style="color: #60a5fa; font-weight: bold;">
           💧 Actively Watering: <span id="active-stake-name" style="color: #ffffff; margin-left: 5px;">--</span>
         </div>
@@ -79,18 +81,25 @@
 
       <label>Watering Days:</label>
       <div class="days-grid">
-        <label class="day-checkbox"><input type="checkbox" value="Mon"><span>M</span></label>
-        <label class="day-checkbox"><input type="checkbox" value="Tue"><span>T</span></label>
-        <label class="day-checkbox"><input type="checkbox" value="Wed"><span>W</span></label>
-        <label class="day-checkbox"><input type="checkbox" value="Thu"><span>T</span></label>
-        <label class="day-checkbox"><input type="checkbox" value="Fri"><span>F</span></label>
-        <label class="day-checkbox"><input type="checkbox" value="Sat"><span>S</span></label>
-        <label class="day-checkbox"><input type="checkbox" value="Sun"><span>S</span></label>
+        <label class="day-checkbox">
+          <input type="checkbox" value="Mon"><span>M</span></label>
+        <label class="day-checkbox">
+          <input type="checkbox" value="Tue"><span>T</span></label>
+        <label class="day-checkbox">
+          <input type="checkbox" value="Wed"><span>W</span></label>
+        <label class="day-checkbox">
+          <input type="checkbox" value="Thu"><span>T</span></label>
+        <label class="day-checkbox">
+          <input type="checkbox" value="Fri"><span>F</span></label>
+        <label class="day-checkbox">
+          <input type="checkbox" value="Sat"><span>S</span></label>
+        <label class="day-checkbox">
+          <input type="checkbox" value="Sun"><span>S</span></label>
       </div>
 
       <label>Scheduled Times:</label>
       <div style="display: flex; gap: 10px; margin-bottom: 10px;">
-        <input type="time" id="input-time">
+        <input type="time" id="input-time"> <!-- Built in HTML feature for adding time-->
         <button class="action-btn" onclick="addTime()" style="margin: 0; padding: 0 20px;">+ Add</button>
       </div>
       
@@ -110,10 +119,12 @@
   </div>
 
   <script>
-    const mainDashboard = document.getElementById('main-dashboard');
-    const stakeDetails = document.getElementById('stake-details');
+    const mainDashboard = document.getElementById('main-dashboard'); // reference to main dashboard div
+    const stakeDetails = document.getElementById('stake-details'); // reference to stake details div
     
-    let activeTimes = [];
+    let activeTimes = []; // array to hold the active watering times for the selected stake (when in "stakedetails" view)
+
+    let activeDays = []; // array to hold the active watering days for the selected stake
 
     async function openStakeDetails(name) {
       document.getElementById('detail-title').innerText = name;
@@ -135,11 +146,12 @@
         document.getElementById('detail-water-level').innerText = data.waterLevel;
         document.getElementById('input-vol').value = data.vol;
         
-        document.querySelectorAll('.day-checkbox input').forEach(cb => {
+        //finds every input element inside a day-checkbox class
+        document.querySelectorAll('.day-checkbox input').forEach(cb => {//embedded function that loops through each day and checks the ones present in daysArr
           cb.checked = daysArr.includes(cb.value);
         });
         
-        activeTimes = [...timesArr];
+        activeTimes = Array.from(timesArr); // copy timesArr to activeTimes
         renderTimeChips();
 
         mainDashboard.classList.add('hidden');
@@ -158,44 +170,62 @@
 
     function renderTimeChips() {
       const container = document.getElementById('time-chips-container');
+      // Clear the container
       container.innerHTML = ''; 
       
-      activeTimes.sort(); 
+      activeTimes.sort(); // Sort times in ascending order
       
-      activeTimes.forEach((time, index) => {
-        const chip = document.createElement('div');
-        chip.className = 'time-chip';
-        chip.innerHTML = `${time} <button class="remove-chip-btn" onclick="removeTime(${index})">&times;</button>`;
+      activeTimes.forEach(function(time, index) {
+        const chip = document.createElement('div'); // div is the general html container element
+        chip.className = 'time-chip'; //assigning class name from CSS
+        chip.innerHTML = `${time} <button class="remove-chip-btn" onclick="removeTime(${index})">&times;</button>`; // inner html of chip html. ${var} types are used to insert variables into strings
         container.appendChild(chip);
       });
     }
 
-    // function addTime() {
-    //   const newTime = document.getElementById('input-time').value;
-    //   if (newTime && !activeTimes.includes(newTime)) {
-    //     activeTimes.push(newTime);
-    //     renderTimeChips();
-    //     document.getElementById('input-time').value = ''; 
-    //   }
-    // }
+    function addTime() {
+      const newTime = document.getElementById('input-time').value;
+      if (newTime && !activeTimes.includes(newTime)) {
+        activeTimes.push(newTime); // add chip to end of array
+        renderTimeChips(); //refresh time chipsk
+        document.getElementById('input-time').value = ''; //clear input
+      }
+    }
 
-    // function removeTime(index) {
-    //   activeTimes.splice(index, 1);
-    //   renderTimeChips();
-    // }
+    function removeTime(index) {
+      // remove chip from array
+      activeTimes.splice(index, 1);
+      renderTimeChips(); //refresh time chips
+    }
 
-    // function saveStakeSettings() {
-    //   const vol = document.getElementById('input-vol').value;
-    //   const stakeName = document.getElementById('detail-title').innerText;
+    async function saveStakeSettings() {
+      const vol = document.getElementById('input-vol').value;
+      const stakeName = document.getElementById('detail-title').innerText;
       
-    //   const selectedDays = [];
-    //   document.querySelectorAll('.day-checkbox input:checked').forEach(cb => {
-    //     selectedDays.push(cb.value);
-    //   });
+      const selectedDays = [];
+      document.querySelectorAll('.day-checkbox input:checked').forEach(cb => {
+        selectedDays.push(cb.value);
+      });
       
-    //   console.log(`Saved ${stakeName}: Days [${selectedDays.join(', ')}], Times [${activeTimes.join(', ')}], Volume: ${vol}`);
-    //   closeStakeDetails();
-    // }
+      console.log(`Saved ${stakeName}: Days [${selectedDays.join(', ')}], Times [${activeTimes.join(', ')}], Volume: ${vol}`);
+      closeStakeDetails();
+      try{
+        const params = new URLSearchParams({
+          name: stakeName,
+          days: selectedDays.join(','),
+          times: activeTimes.join(','),
+          vol: vol
+        });
+        const response = await fetch(`/savestakedata?${params.toString()}`)
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        console.log('Stake settings saved successfully.');
+        
+      } catch (error) {
+        console.error('Error saving stake settings:', error);
+      }
+    }
 
     function setActiveWatering(stakeName) {
       const banner = document.getElementById('active-water-banner');
@@ -264,6 +294,22 @@
         document.getElementById('test-mode-toggle').checked = !isTestMode;
       }
     }
+
+    const serverEvents = new EventSource('/events');
+
+    serverEvents.addEventListener('button-pressed', function(event) {
+      const notification = document.getElementById('event-notification');
+      notification.innerText = event.data;
+      notification.style.display = 'block'; // unhide the notification
+
+      setTimeout((function() {
+        notification.style.display = 'none';
+      }), 3000);
+    });
+
+    serverEvents.onerror = function() {
+      console.error('SSE connection to the ESP32 was lost; the browser will retry automatically.');
+    };
     
     /*
     Periodically fetches current system values and udates all clients
