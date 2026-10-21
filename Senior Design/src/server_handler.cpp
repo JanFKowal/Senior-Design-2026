@@ -41,6 +41,20 @@ void handleWaterAll(AsyncWebServerRequest* request) {
   request->send(200, "text/plain", "Watering all plants");
 }
 
+void handleWaterStake(AsyncWebServerRequest* request) {
+  if (!request->hasParam("name")) {
+    request->send(400, "text/plain", "Missing stake name parameter");
+    return;
+  }
+
+  activeStake = request->getParam("name")->value();
+
+  if (printToConsole) {
+    Serial.println("Adding " + activeStake + " to watering queue...");
+  }
+  request->send(200, "text/plain", "Manual watering started");
+}
+
 void handleStopWaterAll(AsyncWebServerRequest* request) {
   if (printToConsole) {
     Serial.println("Stopping all watering cycles...");
@@ -118,6 +132,7 @@ void registerServerCallbacks(AsyncWebServer& server, AsyncEventSource& events) {
   server.on("/test/on", HTTP_GET, handleTestModeOn);
   server.on("/test/off", HTTP_GET, handleTestModeOff);
   server.on("/water/all", HTTP_GET, handleWaterAll);
+  server.on("/water/stake", HTTP_GET, handleWaterStake);
   server.on("/stopwater/all", HTTP_GET, handleStopWaterAll);
   server.on("/getstakedata", HTTP_GET, handleGetStakeData);
   server.on("/savestakedata", HTTP_GET, handleSaveStakeData);

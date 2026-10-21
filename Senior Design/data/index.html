@@ -228,7 +228,7 @@
     }
 
     function setActiveWatering(stakeName) {
-      const banner = document.getElementById('active-water-banner');
+      const banner = document.getElementById('water-banner');
       const nameLabel = document.getElementById('active-stake-name');
       
       if (stakeName) {
@@ -254,11 +254,22 @@
       }
     }
 
-    function startManualWater() {
+    async function startManualWater() {
       const stakeName = document.getElementById('detail-title').innerText;
       console.log(`Manual override: Watering ${stakeName} now.`);
-      setActiveWatering(stakeName);
-      closeStakeDetails();
+
+      try {
+        const params = new URLSearchParams({ name: stakeName });
+        const response = await fetch(`/water/stake?${params.toString()}`);
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        closeStakeDetails();
+        await fetchSystemState();
+      } catch (error) {
+        console.error('Error starting manual watering:', error);
+      }
     }
 
     async function waterAll() {
