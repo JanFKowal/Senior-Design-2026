@@ -64,8 +64,8 @@ void loop() {
     case BUTTON_PRESSED:
       if (printToConsole) {
         Serial.println("Button pressed!");
+        events.send("Test", "button-pressed", millis());
       }
-      events.send("Button pressed", "button-pressed", millis());
       systemEvent = NONE;
       break;
     default:

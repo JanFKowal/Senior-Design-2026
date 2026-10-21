@@ -18,9 +18,9 @@ void handleTestModeOn(AsyncWebServerRequest* request) {
 
   for (int i = 0; i < 3; i++) {
     digitalWrite(ledPin, HIGH);
-    delay(200);
+    delay(100);
     digitalWrite(ledPin, LOW);
-    delay(200);
+    delay(100);
   }
 
   Serial.println("Test mode enabled");

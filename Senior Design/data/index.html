@@ -132,7 +132,7 @@
       try {
         const params = new URLSearchParams({ name });
         const response = await fetch(`/getstakedata?${params.toString()}`, {
-          cache: 'no-store'
+          cache: 'no-store'// prevents browser from caching this data
         });
 
         if (!response.ok) {
@@ -254,12 +254,12 @@
       }
     }
 
-    // function startManualWater() {
-    //   const stakeName = document.getElementById('detail-title').innerText;
-    //   console.log(`Manual override: Watering ${stakeName} now.`);
-    //   setActiveWatering(stakeName);
-    //   closeStakeDetails();
-    // }
+    function startManualWater() {
+      const stakeName = document.getElementById('detail-title').innerText;
+      console.log(`Manual override: Watering ${stakeName} now.`);
+      setActiveWatering(stakeName);
+      closeStakeDetails();
+    }
 
     async function waterAll() {
       console.log("Manual override: Queuing all active stakes.");
