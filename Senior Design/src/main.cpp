@@ -15,7 +15,7 @@ void SysProvEvent(arduino_event_t *event);
 // const char* ssid = "";
 // const char* password = "";
 const char* pop = "gardenapp";// proof of possession for WiFi provisioning
-const char* serviceName = "PROV_GardenESP"; // WiFi provisioning service name
+const char* serviceName = "PROV_GardenESP"; // WiFi provisioning service name that shows in app
 
 int ledPin = 8;
 int bttnPin = 9;
@@ -40,36 +40,32 @@ AsyncEventSource events("/events");
 
 void setup() {
   Serial.begin(115200);
+  delay(500); // get serial monitor running
   pinMode(ledPin, OUTPUT);
   pinMode(bttnPin, INPUT_PULLUP);
-  attachInterrupt(digitalPinToInterrupt(bttnPin), handleButtonPressed, CHANGE);
 
   if (!SPIFFS.begin(true)) {
     Serial.println("An error has occurred while mounting SPIFFS");
     return;
   }
 
-  Serial.println("Before provisioning");
   WiFi.onEvent(SysProvEvent);
-  Serial.println("After provisioning");
+  WiFi.mode(WIFI_MODE_STA);// set WiFi to station mode so WiFi.disconnect() doesnt fail
 
   if (digitalRead(bttnPin) == LOW) {
     Serial.println("Button held during startup. Clearing saved Wi-Fi credentials.");
-    WiFi.disconnect(true, true);
+    bool success = WiFi.disconnect(true, true);
+    if (!success) {
+      Serial.println("Failed to clear Wi-Fi credentials.");
+    }    
     delay(500);
   }
+  attachInterrupt(digitalPinToInterrupt(bttnPin), handleButtonPressed, CHANGE);
 
-  Serial.println("Before Wifi");
-  WiFi.begin();
-  Serial.println("After Wifi");
 
   if (WiFi.SSID().isEmpty()) {
     Serial.println("No saved Wi-Fi credentials. Begin provisioning using BLE");
 
-    // uint8_t uuid[16] = {
-    //   0xb4, 0xdf, 0x5a, 0x1c, 0x3f, 0x6b, 0xf4, 0xbf,
-    //   0xea, 0x4a, 0x82, 0x03, 0x04, 0x90, 0x1a, 0x02
-    // };
     WiFiProv.beginProvision(
       WIFI_PROV_SCHEME_BLE,
       WIFI_PROV_SCHEME_HANDLER_FREE_BLE,
@@ -77,25 +73,24 @@ void setup() {
       pop,
       serviceName,
       NULL,
-      NULL,//uuid,
-      false
+      NULL//uuid,
     );
   } else {
     Serial.print("Saved Wi-Fi credentials found for ");
     Serial.println(WiFi.SSID());
-  }
-  Serial.println("Before wifi loop");
 
-  while (WiFi.status() != WL_CONNECTED) {
+    WiFi.begin();
+  }
+
+  while (WiFi.status() != WL_CONNECTED) { //while not connected
     delay(1000);
-    Serial.println("Connecting to WiFi...");
+    Serial.println("...");
   }
 
   if (!MDNS.begin("garden")) {
     Serial.println("Error starting mDNS");
     return;
   }
-
   MDNS.addService("_http", "_tcp", 80);
 
   registerServerCallbacks(server, events);
@@ -109,7 +104,7 @@ void loop() {
     case BUTTON_PRESSED:
       if (printToConsole) {
         Serial.println("Button pressed!");
-        events.send("Test", "button-pressed", millis());
+        events.send("Test", "button-pressed");
       }
       systemEvent = NONE;
       break;
@@ -124,32 +119,48 @@ void handleButtonPressed() {
     systemEvent = BUTTON_PRESSED;
   }
 }
-
+ /*
+  * Handle the system provisioning events.
+  */
 void SysProvEvent(arduino_event_t *sys_event) {
   switch (sys_event->event_id) {
-    case ARDUINO_EVENT_WIFI_STA_GOT_IP:
-      Serial.print("\nConnected IP address : ");
+    case ARDUINO_EVENT_PROV_START: // Provisioning started
+      Serial.println("\nProvisioning started.");
+      Serial.println("Give your access point credentials using the smartphone app.");
+      break;
+
+    case ARDUINO_EVENT_PROV_CRED_RECV: // Received Wi-Fi credentials
+      Serial.println("\nReceived Wi-Fi credentials.");
+      Serial.print("\tSSID: ");
+      Serial.println((const char *)sys_event->event_info.prov_cred_recv.ssid);
+      break;
+
+    case ARDUINO_EVENT_PROV_CRED_SUCCESS: // Provisioning successful
+      Serial.println("\nProvisioning successful.");
+      break;
+
+    case ARDUINO_EVENT_PROV_END: // Provisioning ended
+      Serial.println("\nProvisioning ended.");
+      break;
+
+    case ARDUINO_EVENT_WIFI_STA_GOT_IP: // Got IP from Wi-Fi
+      Serial.print("\nConnected IP address: ");
       Serial.println(IPAddress(sys_event->event_info.got_ip.ip_info.ip.addr));
       break;
-    case ARDUINO_EVENT_WIFI_STA_DISCONNECTED: Serial.println("\nDisconnected. Connecting to the AP again... "); break;
-    case ARDUINO_EVENT_PROV_START:            Serial.println("\nProvisioning started\nGive Credentials of your access point using smartphone app"); break;
-    case ARDUINO_EVENT_PROV_CRED_RECV:
-      Serial.println("\nReceived Wi-Fi credentials");
-      Serial.print("\tSSID : ");
-      Serial.println((const char *)sys_event->event_info.prov_cred_recv.ssid);
-      Serial.print("\tPassword : ");
-      Serial.println((char const *)sys_event->event_info.prov_cred_recv.password);
-      break;
-    case ARDUINO_EVENT_PROV_CRED_FAIL:
-      Serial.println("\nProvisioning failed!\nPlease reset to factory and retry provisioning\n");
+
+    case ARDUINO_EVENT_PROV_CRED_FAIL: // Provisioning failed
       if (sys_event->event_info.prov_fail_reason == WIFI_PROV_STA_AUTH_ERROR) {
-        Serial.println("\nWi-Fi AP password incorrect");
+        Serial.println("\nProvisioning failed: Wi-Fi password is incorrect."); // Pass is wrong
       } else {
-        Serial.println("\nWi-Fi AP not found....Add API \" nvs_flash_erase() \" before beginProvision()");
+        Serial.println("\nProvisioning failed: Wi-Fi access point was not found."); // Wi-Fi not found
       }
       break;
-    case ARDUINO_EVENT_PROV_CRED_SUCCESS: Serial.println("\nProvisioning Successful"); break;
-    case ARDUINO_EVENT_PROV_END:          Serial.println("\nProvisioning Ends"); break;
-    default:                              break;
+
+    case ARDUINO_EVENT_WIFI_STA_DISCONNECTED: // Disconnected from Wi-Fi
+      Serial.println("\nDisconnected from Wi-Fi.");
+      break;
+
+    default:
+      break;
   }
 }
