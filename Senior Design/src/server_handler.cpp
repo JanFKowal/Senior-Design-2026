@@ -138,4 +138,9 @@ void registerServerCallbacks(AsyncWebServer& server, AsyncEventSource& events) {
   server.on("/savestakedata", HTTP_GET, handleSaveStakeData);
   server.on("/api/state", HTTP_GET, handleState);
   server.addHandler(&events);
+  server.onNotFound([](AsyncWebServerRequest* request) {
+    Serial.print("Unhandled request: ");
+    Serial.println(request->url());
+    request->send(404, "text/plain", "Not found");
+  });
 }
