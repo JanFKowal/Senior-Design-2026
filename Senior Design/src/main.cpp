@@ -2,6 +2,7 @@
 #include "ESPAsyncWebServer.h"
 #include "WiFiProv.h"
 #include "SPIFFS.h"
+#include "esp_wifi.h"
 #include <ESPmDNS.h>
 
 #include "server_handler.h"
@@ -63,7 +64,10 @@ void setup() {
   attachInterrupt(digitalPinToInterrupt(bttnPin), handleButtonPressed, CHANGE);
 
 
-  if (WiFi.SSID().isEmpty()) {
+  wifi_config_t wifiConfig = {};
+  esp_err_t wifiConfigResult = esp_wifi_get_config(WIFI_IF_STA, &wifiConfig);
+
+  if (wifiConfigResult != ESP_OK || wifiConfig.sta.ssid[0] == '\0') {
     Serial.println("No saved Wi-Fi credentials. Begin provisioning using BLE");
 
     WiFiProv.beginProvision(
@@ -76,8 +80,7 @@ void setup() {
       NULL//uuid,
     );
   } else {
-    Serial.print("Saved Wi-Fi credentials found for ");
-    Serial.println(WiFi.SSID());
+    Serial.printf("Saved Wi-Fi credentials found for %s\n", wifiConfig.sta.ssid);
 
     WiFi.begin();
   }
