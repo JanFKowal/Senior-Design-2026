@@ -1,28 +1,253 @@
-html {
-  font-family: Helvetica;
-  display: inline-block;
-  margin: 0px auto;
+:root {
+  --bg-color: #2b1d14;
+  --card-bg: #3d2a1d;
+  --text-color: #f0eadd;
+  --accent: #4ade80;
+  --border: #1f140e;
+}
+
+body {
+  font-family: system-ui, -apple-system, sans-serif;
+  background-color: var(--bg-color);
+  color: var(--text-color);
+  margin: 0;
+  padding: 20px;
+  box-sizing: border-box;
+}
+
+.card {
+  background-color: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 20px;
+  margin-bottom: 20px;
+  box-shadow: 0 4px 6px rgba(0,0,0,0.4);
+}
+
+h2, h3 {
+  margin-top: 0;
+  color: var(--accent);
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 10px;
+}
+
+.data-row {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 10px;
+  font-size: 1.1em;
+}
+
+.val {
+  font-weight: bold;
+  color: #ffffff;
+}
+
+.stakes-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 15px;
+}
+
+.stake-btn {
+  background-color: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 20px 10px;
   text-align: center;
-}
-h1{
-  color: #0F3376;
-  padding: 2vh;
-}
-p{
-  font-size: 1.5rem;
-}
-.button {
-  display: inline-block;
-  background-color: #008CBA;
-  border: none;
-  border-radius: 4px;
-  color: white;
-  padding: 16px 40px;
-  text-decoration: none;
-  font-size: 30px;
-  margin: 2px;
   cursor: pointer;
+  color: var(--text-color);
+  font-size: 1.1em;
+  transition: transform 0.1s, border-color 0.2s;
 }
-.button2 {
-  background-color: #f44336;
+
+.stake-btn:hover, .stake-btn:active {
+  transform: scale(1.03);
+  border-color: var(--accent);
+}
+
+.hidden {
+  display: none !important;
+}
+
+label {
+  display: block;
+  margin-top: 15px;
+  margin-bottom: 5px;
+  color: #c7bcae;
+}
+
+input[type="time"], select {
+  background-color: #24170f;
+  border: 1px solid var(--border);
+  color: #fff;
+  padding: 12px;
+  border-radius: 6px;
+  width: 100%;
+  box-sizing: border-box;
+  font-size: 1em;
+  color-scheme: dark;
+}
+
+button {
+  font-family: inherit;
+}
+
+button.primary-btn {
+  background-color: var(--accent);
+  color: #0b2413;
+  border: none;
+  padding: 15px;
+  border-radius: 8px;
+  font-weight: bold;
+  width: 100%;
+  margin-top: 25px;
+  cursor: pointer;
+  font-size: 1.1em;
+}
+
+button.secondary-btn {
+  background-color: transparent;
+  color: #60a5fa;
+  border: 1px solid #60a5fa;
+  padding: 15px;
+  border-radius: 8px;
+  font-weight: bold;
+  width: 100%;
+  margin-top: 15px;
+  cursor: pointer;
+  font-size: 1.1em;
+}
+
+button.action-btn {
+  background-color: #24170f;
+  color: var(--text-color);
+  border: 1px solid var(--border);
+  padding: 10px 15px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: bold;
+  font-size: 1em;
+}
+
+button.back-btn {
+  background-color: transparent;
+  color: var(--accent);
+  border: 1px solid var(--accent);
+  padding: 8px 15px;
+  border-radius: 6px;
+  cursor: pointer;
+  margin-bottom: 20px;
+  display: inline-flex;
+  align-items: center;
+}
+
+.toggle-container {
+  display: flex;
+  align-items: center;
+}
+
+.switch {
+  position: relative;
+  display: inline-block;
+  width: 50px;
+  height: 26px;
+}
+
+.switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background-color: #24170f;
+  border: 1px solid var(--border);
+  transition: .3s;
+  border-radius: 26px;
+}
+
+.slider:before {
+  position: absolute;
+  content: "";
+  height: 18px;
+  width: 18px;
+  left: 3px;
+  bottom: 3px;
+  background-color: #c7bcae;
+  transition: .3s;
+  border-radius: 50%;
+}
+
+input:checked + .slider {
+  background-color: var(--accent);
+  border-color: var(--accent);
+}
+
+input:checked + .slider:before {
+  transform: translateX(24px);
+  background-color: #0b2413;
+}
+
+.days-grid {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 20px;
+}
+
+.day-checkbox {
+  cursor: pointer;
+  margin: 0;
+  color: transparent; 
+}
+
+.day-checkbox input {
+  display: none;
+}
+
+.day-checkbox span {
+  display: inline-block;
+  width: 38px;
+  height: 38px;
+  line-height: 38px;
+  text-align: center;
+  background-color: #24170f;
+  border: 1px solid var(--border);
+  border-radius: 50%;
+  color: #c7bcae;
+  font-weight: bold;
+  transition: 0.2s ease;
+}
+
+.day-checkbox input:checked + span {
+  background-color: var(--accent);
+  color: #0b2413;
+  border-color: var(--accent);
+}
+
+.time-chip {
+  background-color: #24170f;
+  border: 1px solid var(--accent);
+  color: var(--text-color);
+  padding: 6px 14px;
+  border-radius: 20px;
+  display: inline-flex;
+  align-items: center;
+  font-size: 0.95em;
+  font-weight: bold;
+}
+
+.remove-chip-btn {
+  margin-left: 8px;
+  color: #ff6b6b;
+  cursor: pointer;
+  font-weight: bold;
+  border: none;
+  background: none;
+  padding: 0;
+  font-size: 1.3em;
+  line-height: 1;
 }
